@@ -16,21 +16,43 @@ const Index = () => {
     localStorage.setItem("notes", JSON.stringify(notes));
   }, [notes]);
 
-  const handleAddNote = () => {
+  const handleAddNote = async () => {
     if (newNote.trim() !== "") {
-      const note = {
-        id: Date.now(),
-        text: newNote,
-        audioUrl: `GPTENG:get_tts("${encodeURIComponent(newNote)}")`,
-      };
-      setNotes([...notes, note]);
-      setNewNote("");
-      toast({
-        title: "Note added",
-        status: "success",
-        duration: 2000,
-        isClosable: true,
-      });
+      try {
+        const response = await fetch("/api/tts", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ text: newNote }),
+        });
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        const note = {
+          id: Date.now(),
+          text: newNote,
+          audioUrl: data.audioUrl,
+        };
+        setNotes([...notes, note]);
+        setNewNote("");
+        toast({
+          title: "Note added",
+          description: "Your note has been added and TTS has been generated.",
+          status: "success",
+          duration: 2000,
+          isClosable: true,
+        });
+      } catch (error) {
+        toast({
+          title: "Error adding note",
+          description: error.message,
+          status: "error",
+          duration: 2000,
+          isClosable: true,
+        });
+      }
     }
   };
 
